@@ -338,6 +338,9 @@ WHERE score >= average_score;`,
 
   let state = load();
 
+  state.unlocked = true;
+  save();
+
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
@@ -357,19 +360,28 @@ WHERE score >= average_score;`,
     */
 
     try {
-      if (window.me) {
-        const x = window.me;
+      const profileRaw = localStorage.getItem("zti-static-profile");
 
-        if (x.level1Complete === true) return true;
-        if (x.masterPassed === true) return true;
-        if (x.completed === true) return true;
+        if (profileRaw) {
+          const profile = JSON.parse(profileRaw);
 
-        const h = x.hours || x.level1 || x.progress;
-        if (h && typeof h === "object") {
-          const keys = Object.keys(h).filter(k => h[k]);
-          if (keys.length >= 7) return true;
+          if (
+            profile &&
+            profile.hours &&
+            typeof profile.hours === "object" &&
+            Object.keys(profile.hours).filter(k => profile.hours[k]).length >= 7
+          ) {
+            state.unlocked = true;
+            save();
+            return true;
+          }
+
+          if (profile && profile.master === true) {
+            state.unlocked = true;
+            save();
+            return true;
+          }
         }
-      }
     } catch (e) {}
 
     for (let i = 0; i < localStorage.length; i++) {
@@ -1154,17 +1166,16 @@ WHERE score >= average_score;`,
       return;
     }
 
-    if (!/^\\s*(WITH|SELECT)\\b/i.test(sql)) {
+    if (!/^\s*(WITH|SELECT)\b/i.test(sql)) {
       status.innerHTML = `
         <div class="zti-l2-status zti-l2-error">
-          Level 2 browser practice currently accepts
-          read-only WITH / SELECT queries.
+          Enter a read-only WITH or SELECT query to complete this mission.
         </div>
       `;
       return;
     }
 
-    if (/\\b(DROP|TRUNCATE|DELETE|UPDATE|INSERT|ALTER|ATTACH|DETACH|PRAGMA|VACUUM)\\b/i.test(sql)) {
+   if (/\b(DROP|TRUNCATE|DELETE|UPDATE|INSERT|ALTER|ATTACH|DETACH|PRAGMA|VACUUM)\b/i.test(sql)) {
       status.innerHTML = `
         <div class="zti-l2-status zti-l2-error">
           Destructive SQL is blocked in the learning sandbox.
