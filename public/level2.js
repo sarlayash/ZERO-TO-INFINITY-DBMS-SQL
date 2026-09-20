@@ -800,13 +800,42 @@ WHERE score >= average_score;`,
                 70%.
               </p>
 
-              <button
-                class="zti-l2-btn"
-                ${completed === 7 && !state.master ? "" : "disabled"}
-                onclick="ZTI_LEVEL2.master()"
-              >
-                ${state.master ? "VIEW CERTIFICATE" : "START MASTER ASSESSMENT"}
-              </button>
+                            ${
+                state.master
+                  ? `
+                    <div style="
+                      display:flex;
+                      gap:10px;
+                      flex-wrap:wrap;
+                      margin-top:14px;
+                    ">
+
+                      <button
+                        class="zti-l2-btn"
+                        onclick="ZTI_LEVEL2.certificatePng()"
+                      >
+                        DOWNLOAD CERTIFICATE PNG
+                      </button>
+
+                      <button
+                        class="zti-l2-btn secondary"
+                        onclick="ZTI_LEVEL2.certificatePdf()"
+                      >
+                        DOWNLOAD CERTIFICATE PDF
+                      </button>
+
+                    </div>
+                  `
+                  : `
+                    <button
+                      class="zti-l2-btn"
+                      ${completed === 7 ? "" : "disabled"}
+                      onclick="ZTI_LEVEL2.master()"
+                    >
+                      START MASTER ASSESSMENT
+                    </button>
+                  `
+              }
             </div>
 
             <div class="zti-l2-card">
@@ -1114,12 +1143,28 @@ WHERE score >= average_score;`,
                       Badge unlocked.
                     </p>
 
-                    <button
-                      class="zti-l2-btn"
-                      onclick="ZTI_LEVEL2.badge(${id})"
-                    >
-                      DOWNLOAD BADGE
-                    </button>
+                                        <div style="
+                      display:flex;
+                      gap:10px;
+                      flex-wrap:wrap;
+                      margin-top:14px;
+                    ">
+
+                      <button
+                        class="zti-l2-btn"
+                        onclick="ZTI_LEVEL2.badgePng(${id})"
+                      >
+                        DOWNLOAD BADGE PNG
+                      </button>
+
+                      <button
+                        class="zti-l2-btn secondary"
+                        onclick="ZTI_LEVEL2.badgePdf(${id})"
+                      >
+                        DOWNLOAD BADGE PDF
+                      </button>
+
+                    </div>
 
                   </div>
                 `
@@ -1468,313 +1513,888 @@ WHERE score >= average_score;`,
     );
   }
 
-  /* =========================================================
-     BADGE DOWNLOAD
-     ========================================================= */
+ /* =========================================================
+   BADGE + CERTIFICATE GENERATION
+   PNG + PDF ONLY
+   ========================================================= */
 
-  function badge(id) {
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
 
-    if (!state.hours[id]) return;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
 
-    const name = getLearnerName();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 
-    const title = HOURS[id - 1].title;
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
 
-    const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
 
-<rect width="1200" height="630" fill="#090909"/>
+/* =========================================================
+   SVG → CANVAS
+   ========================================================= */
 
-<rect
-  x="25"
-  y="25"
-  width="1150"
-  height="580"
-  rx="28"
-  fill="#111111"
-  stroke="#d8ad4f"
-  stroke-width="4"
-/>
+function svgToCanvas(svg, width, height) {
 
-<text
-  x="600"
-  y="130"
-  text-anchor="middle"
-  font-family="Arial"
-  font-size="28"
-  font-weight="bold"
-  fill="#d8ad4f"
->
-ZERO-TO-INFINITY · DBMS + SQL
-</text>
-
-<text
-  x="600"
-  y="215"
-  text-anchor="middle"
-  font-family="Arial"
-  font-size="42"
-  font-weight="bold"
-  fill="#f5f1e8"
->
-LEVEL 2 · HOUR ${id}
-</text>
-
-<text
-  x="600"
-  y="285"
-  text-anchor="middle"
-  font-family="Arial"
-  font-size="28"
-  fill="#d8ad4f"
->
-${esc(title)}
-</text>
-
-<line
-  x1="250"
-  y1="340"
-  x2="950"
-  y2="340"
-  stroke="#3b321f"
-/>
-
-<text
-  x="600"
-  y="415"
-  text-anchor="middle"
-  font-family="Arial"
-  font-size="24"
-  fill="#a9a49a"
->
-AWARDED TO
-</text>
-
-<text
-  x="600"
-  y="475"
-  text-anchor="middle"
-  font-family="Arial"
-  font-size="38"
-  font-weight="bold"
-  fill="#f5f1e8"
->
-${esc(name)}
-</text>
-
-<text
-  x="600"
-  y="535"
-  text-anchor="middle"
-  font-family="Arial"
-  font-size="18"
-  fill="#d8ad4f"
->
-10% THEORY · 90% HANDS-ON · POWERED BY KAPIL
-</text>
-
-</svg>`;
-
-    download(
-      `ZERO-TO-INFINITY-Level-2-Hour-${id}-Badge.svg`,
-      svg
-    );
-  }
-
-  /* =========================================================
-     CERTIFICATE
-     ========================================================= */
-
-  function certificate() {
-
-    if (!state.master) {
-      dashboard();
-      return;
-    }
-
-    const name = getLearnerName();
-
-    const certificateId =
-      "ZTI-DBMS-L2-" +
-      Math.random()
-        .toString(36)
-        .substring(2, 10)
-        .toUpperCase();
-
-    const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000">
-
-<rect width="1600" height="1000" fill="#f5f1e8"/>
-
-<rect
- x="35"
- y="35"
- width="1530"
- height="930"
- fill="none"
- stroke="#d8ad4f"
- stroke-width="12"
-/>
-
-<text
- x="800"
- y="170"
- text-anchor="middle"
- font-family="Arial"
- font-size="52"
- font-weight="bold"
- fill="#15120c"
->
-ZERO-TO-INFINITY
-</text>
-
-<text
- x="800"
- y="235"
- text-anchor="middle"
- font-family="Arial"
- font-size="34"
- fill="#80672d"
->
-DBMS + SQL · LEVEL 2
-</text>
-
-<text
- x="800"
- y="340"
- text-anchor="middle"
- font-family="Arial"
- font-size="28"
- fill="#222"
->
-CERTIFICATE OF COMPLETION
-</text>
-
-<text
- x="800"
- y="420"
- text-anchor="middle"
- font-family="Arial"
- font-size="25"
- fill="#333"
->
-This certifies that
-</text>
-
-<text
- x="800"
- y="515"
- text-anchor="middle"
- font-family="Arial"
- font-size="62"
- font-weight="bold"
- fill="#111"
->
-${esc(name)}
-</text>
-
-<text
- x="800"
- y="590"
- text-anchor="middle"
- font-family="Arial"
- font-size="26"
- fill="#333"
->
-has successfully completed the
-</text>
-
-<text
- x="800"
- y="645"
- text-anchor="middle"
- font-family="Arial"
- font-size="34"
- font-weight="bold"
- fill="#80672d"
->
-ADVANCED SQL · LEVEL 2
-</text>
-
-<text
- x="800"
- y="710"
- text-anchor="middle"
- font-family="Arial"
- font-size="22"
- fill="#333"
->
-Seven advanced hands-on learning hours
-and the 50-question master assessment
-</text>
-
-<text
- x="800"
- y="805"
- text-anchor="middle"
- font-family="Arial"
- font-size="23"
- fill="#80672d"
->
-10% THEORY · 90% HANDS-ON
-</text>
-
-<text
- x="800"
- y="850"
- text-anchor="middle"
- font-family="Arial"
- font-size="20"
- fill="#333"
->
-Certificate ID: ${certificateId}
-</text>
-
-<text
- x="800"
- y="900"
- text-anchor="middle"
- font-family="Arial"
- font-size="20"
- fill="#80672d"
->
-POWERED BY KAPIL
-</text>
-
-</svg>`;
-
-    download(
-      "ZERO-TO-INFINITY-DBMS-SQL-Level-2-Certificate.svg",
-      svg
-    );
-  }
-
-  /* =========================================================
-     DOWNLOAD
-     ========================================================= */
-
-  function download(filename, content) {
+  return new Promise((resolve, reject) => {
 
     const blob = new Blob(
-      [content],
+      [svg],
       { type: "image/svg+xml;charset=utf-8" }
     );
 
     const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const img = new Image();
 
-    a.href = url;
-    a.download = filename;
+    img.onload = function () {
 
-    document.body.appendChild(a);
+      const canvas = document.createElement("canvas");
 
-    a.click();
+      canvas.width = width;
+      canvas.height = height;
 
-    a.remove();
+      const ctx = canvas.getContext("2d");
 
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        width,
+        height
+      );
+
+      URL.revokeObjectURL(url);
+
+      resolve(canvas);
+    };
+
+    img.onerror = function () {
+
+      URL.revokeObjectURL(url);
+
+      reject(
+        new Error("Unable to render achievement artwork.")
+      );
+    };
+
+    img.src = url;
+  });
+}
+
+
+/* =========================================================
+   CANVAS → PNG
+   ========================================================= */
+
+function canvasToPng(canvas, filename) {
+
+  canvas.toBlob(
+    function (blob) {
+
+      if (!blob) {
+        alert("PNG generation failed.");
+        return;
+      }
+
+      triggerDownload(
+        blob,
+        filename
+      );
+
+    },
+    "image/png"
+  );
+}
+
+
+/* =========================================================
+   CANVAS → JPEG DATA
+   ========================================================= */
+
+function canvasToJpegDataURL(canvas) {
+
+  return canvas.toDataURL(
+    "image/jpeg",
+    0.95
+  );
+}
+
+
+/* =========================================================
+   JPEG → BINARY
+   ========================================================= */
+
+function dataUrlToUint8Array(dataUrl) {
+
+  const base64 =
+    dataUrl.split(",")[1];
+
+  const binary =
+    atob(base64);
+
+  const bytes =
+    new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i++) {
+
+    bytes[i] =
+      binary.charCodeAt(i);
   }
+
+  return bytes;
+}
+
+
+/* =========================================================
+   CREATE REAL PDF FROM JPEG
+   ========================================================= */
+
+function createPdfFromCanvas(canvas) {
+
+  const jpegData =
+    canvasToJpegDataURL(canvas);
+
+  const jpegBytes =
+    dataUrlToUint8Array(jpegData);
+
+  const width =
+    canvas.width;
+
+  const height =
+    canvas.height;
+
+  const encoder =
+    new TextEncoder();
+
+  const chunks = [];
+
+  let position = 0;
+
+  function addText(text) {
+
+    const bytes =
+      encoder.encode(text);
+
+    chunks.push(bytes);
+
+    position += bytes.length;
+  }
+
+  function addBytes(bytes) {
+
+    chunks.push(bytes);
+
+    position += bytes.length;
+  }
+
+  const offsets = [];
+
+  addText(
+    "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"
+  );
+
+
+  /* OBJECT 1 — CATALOG */
+
+  offsets[1] = position;
+
+  addText(
+    "1 0 obj\n" +
+    "<< /Type /Catalog /Pages 2 0 R >>\n" +
+    "endobj\n"
+  );
+
+
+  /* OBJECT 2 — PAGES */
+
+  offsets[2] = position;
+
+  addText(
+    "2 0 obj\n" +
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n" +
+    "endobj\n"
+  );
+
+
+  /* OBJECT 3 — PAGE */
+
+  offsets[3] = position;
+
+  addText(
+    "3 0 obj\n" +
+    "<< /Type /Page " +
+    "/Parent 2 0 R " +
+    "/MediaBox [0 0 " +
+    width +
+    " " +
+    height +
+    "] " +
+    "/Resources << " +
+    "/XObject << /Im0 5 0 R >> " +
+    ">> " +
+    "/Contents 4 0 R >>\n" +
+    "endobj\n"
+  );
+
+
+  /* OBJECT 4 — PAGE CONTENT */
+
+  const pageContent =
+    "q\n" +
+    width +
+    " 0 0 " +
+    height +
+    " 0 0 cm\n" +
+    "/Im0 Do\n" +
+    "Q\n";
+
+  const pageBytes =
+    encoder.encode(pageContent);
+
+  offsets[4] = position;
+
+  addText(
+    "4 0 obj\n" +
+    "<< /Length " +
+    pageBytes.length +
+    " >>\n" +
+    "stream\n"
+  );
+
+  addBytes(pageBytes);
+
+  addText(
+    "endstream\n" +
+    "endobj\n"
+  );
+
+
+  /* OBJECT 5 — JPEG IMAGE */
+
+  offsets[5] = position;
+
+  addText(
+    "5 0 obj\n" +
+    "<< " +
+    "/Type /XObject " +
+    "/Subtype /Image " +
+    "/Width " +
+    width +
+    " " +
+    "/Height " +
+    height +
+    " " +
+    "/ColorSpace /DeviceRGB " +
+    "/BitsPerComponent 8 " +
+    "/Filter /DCTDecode " +
+    "/Length " +
+    jpegBytes.length +
+    " >>\n" +
+    "stream\n"
+  );
+
+  addBytes(jpegBytes);
+
+  addText(
+    "\nendstream\n" +
+    "endobj\n"
+  );
+
+
+  /* XREF */
+
+  const xrefPosition =
+    position;
+
+  addText(
+    "xref\n" +
+    "0 6\n" +
+    "0000000000 65535 f \n"
+  );
+
+  for (let i = 1; i <= 5; i++) {
+
+    addText(
+      String(offsets[i])
+        .padStart(10, "0") +
+      " 00000 n \n"
+    );
+  }
+
+
+  /* TRAILER */
+
+  addText(
+    "trailer\n" +
+    "<< /Size 6 /Root 1 0 R >>\n" +
+    "startxref\n" +
+    xrefPosition +
+    "\n" +
+    "%%EOF"
+  );
+
+
+  let totalLength = 0;
+
+  for (const chunk of chunks) {
+    totalLength += chunk.length;
+  }
+
+  const output =
+    new Uint8Array(totalLength);
+
+  let offset = 0;
+
+  for (const chunk of chunks) {
+
+    output.set(
+      chunk,
+      offset
+    );
+
+    offset += chunk.length;
+  }
+
+  return new Blob(
+    [output],
+    { type: "application/pdf" }
+  );
+}
+
+
+/* =========================================================
+   CANVAS → PDF
+   ========================================================= */
+
+function canvasToPdf(canvas, filename) {
+
+  try {
+
+    const pdf =
+      createPdfFromCanvas(canvas);
+
+    triggerDownload(
+      pdf,
+      filename
+    );
+
+  } catch (error) {
+
+    console.error(
+      "PDF generation failed:",
+      error
+    );
+
+    alert(
+      "PDF generation failed. Please try again."
+    );
+  }
+}
+
+
+/* =========================================================
+   BADGE ARTWORK
+   ========================================================= */
+
+function buildBadgeSvg(id) {
+
+  if (!state.hours[id]) {
+    return null;
+  }
+
+  const name =
+    getLearnerName();
+
+  const title =
+    HOURS[id - 1].title;
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1200"
+  height="630"
+  viewBox="0 0 1200 630"
+>
+
+  <rect
+    width="1200"
+    height="630"
+    fill="#0b0b0c"
+  />
+
+  <rect
+    x="24"
+    y="24"
+    width="1152"
+    height="582"
+    rx="28"
+    fill="#121213"
+    stroke="#d6ac52"
+    stroke-width="5"
+  />
+
+  <circle
+    cx="600"
+    cy="205"
+    r="112"
+    fill="#0b0b0c"
+    stroke="#d6ac52"
+    stroke-width="4"
+  />
+
+  <text
+    x="600"
+    y="185"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="27"
+    font-weight="700"
+    fill="#d6ac52"
+  >
+    ZERO-TO-INFINITY
+  </text>
+
+  <text
+    x="600"
+    y="225"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="21"
+    fill="#f5f1e8"
+  >
+    DBMS + SQL
+  </text>
+
+  <text
+    x="600"
+    y="370"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="48"
+    font-weight="800"
+    fill="#d6ac52"
+  >
+    HOUR ${id} COMPLETE
+  </text>
+
+  <text
+    x="600"
+    y="425"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="25"
+    fill="#f5f1e8"
+  >
+    ${esc(title)}
+  </text>
+
+  <text
+    x="600"
+    y="480"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="20"
+    fill="#a9a49a"
+  >
+    ADVANCED SQL · LEVEL 2
+  </text>
+
+  <text
+    x="600"
+    y="525"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="22"
+    font-weight="700"
+    fill="#f5f1e8"
+  >
+    AWARDED TO ${esc(name)}
+  </text>
+
+  <text
+    x="600"
+    y="570"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="16"
+    fill="#d6ac52"
+  >
+    10% THEORY · 90% HANDS-ON · POWERED BY KAPIL
+  </text>
+
+</svg>
+`;
+}
+
+
+/* =========================================================
+   DOWNLOAD BADGE PNG
+   ========================================================= */
+
+async function badgePng(id) {
+
+  const svg =
+    buildBadgeSvg(id);
+
+  if (!svg) return;
+
+  try {
+
+    const canvas =
+      await svgToCanvas(
+        svg,
+        1200,
+        630
+      );
+
+    canvasToPng(
+      canvas,
+      `ZERO-TO-INFINITY-Level-2-Hour-${id}-Badge.png`
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Badge PNG generation failed."
+    );
+  }
+}
+
+
+/* =========================================================
+   DOWNLOAD BADGE PDF
+   ========================================================= */
+
+async function badgePdf(id) {
+
+  const svg =
+    buildBadgeSvg(id);
+
+  if (!svg) return;
+
+  try {
+
+    const canvas =
+      await svgToCanvas(
+        svg,
+        1200,
+        630
+      );
+
+    canvasToPdf(
+      canvas,
+      `ZERO-TO-INFINITY-Level-2-Hour-${id}-Badge.pdf`
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Badge PDF generation failed."
+    );
+  }
+}
+
+
+/* =========================================================
+   DEFAULT BADGE ACTION
+   ========================================================= */
+
+function badge(id) {
+
+  badgePng(id);
+}
+
+
+/* =========================================================
+   CERTIFICATE ARTWORK
+   ========================================================= */
+
+function buildCertificateSvg() {
+
+  if (!state.master) {
+    return null;
+  }
+
+  const name =
+    getLearnerName();
+
+  const certificateId =
+    "ZTI-DBMS-L2-" +
+    Math.random()
+      .toString(36)
+      .substring(2, 10)
+      .toUpperCase();
+
+  const issueDate =
+    new Date()
+      .toLocaleDateString(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "long",
+          year: "numeric"
+        }
+      );
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1600"
+  height="1000"
+  viewBox="0 0 1600 1000"
+>
+
+  <rect
+    width="1600"
+    height="1000"
+    fill="#f5f1e8"
+  />
+
+  <rect
+    x="35"
+    y="35"
+    width="1530"
+    height="930"
+    fill="none"
+    stroke="#d6ac52"
+    stroke-width="12"
+  />
+
+  <text
+    x="800"
+    y="170"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="52"
+    font-weight="800"
+    fill="#15120c"
+  >
+    ZERO-TO-INFINITY
+  </text>
+
+  <text
+    x="800"
+    y="235"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="34"
+    fill="#80672d"
+  >
+    DBMS + SQL · LEVEL 2
+  </text>
+
+  <text
+    x="800"
+    y="340"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="28"
+    fill="#222"
+  >
+    CERTIFICATE OF COMPLETION
+  </text>
+
+  <text
+    x="800"
+    y="420"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="25"
+    fill="#333"
+  >
+    This certifies that
+  </text>
+
+  <text
+    x="800"
+    y="515"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="62"
+    font-weight="800"
+    fill="#111"
+  >
+    ${esc(name)}
+  </text>
+
+  <text
+    x="800"
+    y="590"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="26"
+    fill="#333"
+  >
+    has successfully completed
+  </text>
+
+  <text
+    x="800"
+    y="650"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="36"
+    font-weight="800"
+    fill="#80672d"
+  >
+    ADVANCED SQL · LEVEL 2
+  </text>
+
+  <text
+    x="800"
+    y="710"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="22"
+    fill="#333"
+  >
+    Seven advanced hands-on learning hours
+    and the 50-question master assessment
+  </text>
+
+  <text
+    x="800"
+    y="790"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="23"
+    fill="#80672d"
+  >
+    10% THEORY · 90% HANDS-ON
+  </text>
+
+  <text
+    x="800"
+    y="835"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="19"
+    fill="#333"
+  >
+    Issued: ${esc(issueDate)}
+  </text>
+
+  <text
+    x="800"
+    y="875"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="19"
+    fill="#333"
+  >
+    Certificate ID: ${certificateId}
+  </text>
+
+  <text
+    x="800"
+    y="920"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="20"
+    fill="#80672d"
+  >
+    POWERED BY KAPIL
+  </text>
+
+</svg>
+`;
+}
+
+
+/* =========================================================
+   DOWNLOAD CERTIFICATE PNG
+   ========================================================= */
+
+async function certificatePng() {
+
+  const svg =
+    buildCertificateSvg();
+
+  if (!svg) {
+    dashboard();
+    return;
+  }
+
+  try {
+
+    const canvas =
+      await svgToCanvas(
+        svg,
+        1600,
+        1000
+      );
+
+    canvasToPng(
+      canvas,
+      "ZERO-TO-INFINITY-DBMS-SQL-Level-2-Certificate.png"
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Certificate PNG generation failed."
+    );
+  }
+}
+
+
+/* =========================================================
+   DOWNLOAD CERTIFICATE PDF
+   ========================================================= */
+
+async function certificatePdf() {
+
+  const svg =
+    buildCertificateSvg();
+
+  if (!svg) {
+    dashboard();
+    return;
+  }
+
+  try {
+
+    const canvas =
+      await svgToCanvas(
+        svg,
+        1600,
+        1000
+      );
+
+    canvasToPdf(
+      canvas,
+      "ZERO-TO-INFINITY-DBMS-SQL-Level-2-Certificate.pdf"
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Certificate PDF generation failed."
+    );
+  }
+}
+
+
+/* =========================================================
+   DEFAULT CERTIFICATE ACTION
+   ========================================================= */
+
+function certificate() {
+
+  certificatePng();
+}
 
   /* =========================================================
      LEARNER NAME
@@ -1837,9 +2457,17 @@ POWERED BY KAPIL
 
     master: master,
 
-    badge: badge,
+     badge: badge,
+
+    badgePng: badgePng,
+
+    badgePdf: badgePdf,
 
     certificate: certificate,
+
+    certificatePng: certificatePng,
+
+    certificatePdf: certificatePdf,
 
     close: close,
 
